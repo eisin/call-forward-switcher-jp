@@ -1,0 +1,9 @@
+[config]
+twilio_sid=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+twilio_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+call_from_phone_number=+815000000000
+call_to_phone_number=+81903101429
+forward_from_phone_number=09000000000
+forward_from_network_pass=0000
+record_entire=yes
+record_response=yes
