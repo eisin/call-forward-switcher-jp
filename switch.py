@@ -16,8 +16,8 @@ print("Call forward switching... (it takes a minute)")
 call_result = call_forward_switcher_dcm.call_forward_switch(
     twilio_sid=config.get("config", "twilio_sid"),
     twilio_token=config.get("config", "twilio_token"),
-    call_from_phone_number=config.get("config", "call_from_phone_number"),
-    call_to_phone_number=config.get("config", "call_to_phone_number"),
+    twilio_phone_number=config.get("config", "twilio_phone_number"),
+    transfer_service_dcm_phone_number=config.get("config", "transfer_service_dcm_phone_number"),
     forward_from_phone_number=config.get("config", "forward_from_phone_number"),
     forward_from_network_pass=config.get("config", "forward_from_network_pass"),
     forward_to_phone_number=forward_to_phone_number,

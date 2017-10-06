@@ -3,7 +3,7 @@ import twilio.rest
 from twilio.base.exceptions import TwilioRestException
 import urllib
 
-def call_forward_switch(twilio_sid, twilio_token, call_from_phone_number, call_to_phone_number,
+def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
     record_entire, record_response):
 
@@ -11,10 +11,10 @@ def call_forward_switch(twilio_sid, twilio_token, call_from_phone_number, call_t
         raise ValueError("twilio_sid is missing")
     if not twilio_token:
         raise ValueError("twilio_token is missing")
-    if not call_from_phone_number:
-        raise ValueError("call_from_phone_number is missing")
-    if not call_to_phone_number:
-        raise ValueError("call_to_phone_number is missing")
+    if not twilio_phone_number:
+        raise ValueError("twilio_phone_number is missing")
+    if not transfer_service_dcm_phone_number:
+        raise ValueError("transfer_service_dcm_phone_number is missing")
     if not forward_from_phone_number:
         raise ValueError("forward_from_phone_number is missing")
     if not forward_from_phone_number.isdigit() or len(forward_from_phone_number) != 11:
@@ -103,8 +103,8 @@ def call_forward_switch(twilio_sid, twilio_token, call_from_phone_number, call_t
 
     try:
         call = twilio_client.calls.create(
-            to=call_to_phone_number,
-            from_=call_from_phone_number,
+            to=transfer_service_dcm_phone_number,
+            from_=twilio_phone_number,
             url="http://twimlets.com/echo?Twiml=" + urllib.quote(twiml),
             record=call_record_opt,
         )
