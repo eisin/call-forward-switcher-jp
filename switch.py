@@ -30,7 +30,7 @@ if call_result["error"]:
 
 call_sid = call_result["sid"]
 finished = False
-wait_max = 12
+wait_max = 24
 for i in xrange(wait_max):
     status = call_forward_switcher_dcm.outbound_check_call_and_recordings_finished(
         twilio_sid=config.get("config", "twilio_sid"),
@@ -43,7 +43,7 @@ for i in xrange(wait_max):
     if status["finished"]:
         finished = True
         break
-    time.sleep(10)
+    time.sleep(5)
 
 if not finished:
     print("timed out")
