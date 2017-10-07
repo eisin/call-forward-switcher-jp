@@ -2,6 +2,9 @@
 import twilio.rest
 from twilio.base.exceptions import TwilioRestException
 import urllib
+import urllib2
+import base64
+import json
 
 def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
@@ -177,20 +180,134 @@ def outbound_retreive_recordings(twilio_sid, twilio_token, call_sid):
     try:
         recordings = twilio_client.recordings.list(call_sid=call_sid)
     except TwilioRestException as e:
-        return { "recording_number_confirm_sid": None, "recording_transfer_done_sid": None, "recordings": None, "error": e }
+        return { "recording_number_confirm_sid": None, "recording_switch_done_sid": None, "recordings": None, "error": e }
 
     recording_number_confirm_sid = None
-    recording_transfer_done_sid = None
+    recording_switch_done_sid = None
     for recording in recordings:
         duration = int(recording.duration)
         if 10 - 1 <= duration and duration <= 16 + 1:
             recording_number_confirm_sid = recording.sid
         if 5 - 1 <= duration and duration <= 5 + 1:
-            recording_transfer_done_sid = recording.sid
+            recording_switch_done_sid = recording.sid
     return {
         "recording_number_confirm_sid": recording_number_confirm_sid,
-        "recording_transfer_done_sid": recording_transfer_done_sid,
+        "recording_switch_done_sid": recording_switch_done_sid,
         "recordings": recordings,
         "error": None,
     }
 
+def check_recording_number_confirm(twilio_sid, recording_number_confirm_sid, google_api_key, forward_to_phone_number):
+    if not twilio_sid:
+        raise ValueError("twilio_sid is missing")
+    if not recording_number_confirm_sid:
+        raise ValueError("recording_number_confirm_sid is missing")
+    if not google_api_key:
+        raise ValueError("google_api_key is missing")
+    if not forward_to_phone_number:
+        raise ValueError("forward_to_phone_number is missing")
+    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) != 11:
+        raise ValueError("forward_to_phone_number is not valid form '09000000000'")
+    try:
+        urlrec = urllib2.urlopen("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_number_confirm_sid), timeout=30)
+    except urllib2.HTTPError as e:
+        return { "check": False, "recognize": None, "error": e }
+    wavedata = urlrec.read()
+    wavedata_base64url = base64.b64encode(wavedata).replace("+", "-").replace("/", "_")
+    query = json.dumps({
+        "config": {
+            "encoding": u"LINEAR16",
+            "languageCode": u"ja-JP",
+            "maxAlternatives": 20,
+            "speechContexts": [
+                {
+                    "phrases": [
+                        u"転送",
+                        u"先",
+                        u"電話番号に",
+                        u"を登録します",
+                        u"0",
+                        u"1",
+                        u"2",
+                        u"3",
+                        u"4",
+                        u"5",
+                        u"6",
+                        u"7",
+                        u"8",
+                        u"9"
+                    ]
+                }
+            ]
+        },
+        "audio": {
+            "content": wavedata_base64url,
+        }
+    })
+
+    request = urllib2.Request("https://speech.googleapis.com/v1/speech:recognize?key={}".format(google_api_key))
+    request.add_header("Content-Type", "application/json")
+    request.add_header("Content-Length", len(query))
+    request.add_data(query)
+
+    try:
+        urlrecognize = urllib2.urlopen(request, timeout=30)
+        result = urlrecognize.read()
+    except urllib2.HTTPError as e:
+        return { "check": False, "recognize": None, "error": e }
+
+    if result.find(str(forward_to_phone_number)) < 0:
+        return { "check": False, "recognize": result, "error": None }
+
+    return { "check": True, "recognize": result, "error": None }
+
+def check_recording_switch_done(twilio_sid, recording_switch_done_sid, google_api_key):
+    if not twilio_sid:
+        raise ValueError("twilio_sid is missing")
+    if not recording_switch_done_sid:
+        raise ValueError("recording_switch_done_sid is missing")
+    if not google_api_key:
+        raise ValueError("google_api_key is missing")
+    try:
+        urlrec = urllib2.urlopen("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_switch_done_sid), timeout=30)
+    except urllib2.HTTPError as e:
+        return { "check": False, "recognize": None, "error": e }
+    wavedata = urlrec.read()
+    wavedata_base64url = base64.b64encode(wavedata).replace("+", "-").replace("/", "_")
+    query = json.dumps({
+        "config": {
+            "encoding": u"LINEAR16",
+            "languageCode": u"ja-JP",
+            "maxAlternatives": 20,
+            "speechContexts": [
+                {
+                    "phrases": [
+                        "設定",
+                        "いたしました",
+                        "メイン",
+                        "メニュー",
+                        "です"
+                    ]
+                }
+            ]
+        },
+        "audio": {
+            "content": wavedata_base64url,
+        }
+    })
+
+    request = urllib2.Request("https://speech.googleapis.com/v1/speech:recognize?key={}".format(google_api_key))
+    request.add_header("Content-Type", "application/json")
+    request.add_header("Content-Length", len(query))
+    request.add_data(query)
+
+    try:
+        urlrecognize = urllib2.urlopen(request, timeout=30)
+        result = unicode(urlrecognize.read(), "utf-8")
+    except urllib2.HTTPError as e:
+        return { "check": False, "recognize": None, "error": e }
+
+    if result.find(u"設定いたしました") < 0:
+        return { "check": False, "recognize": result, "error": None }
+
+    return { "check": True, "recognize": result, "error": None }

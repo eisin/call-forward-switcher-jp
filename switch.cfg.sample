@@ -7,3 +7,4 @@ forward_from_phone_number=09000000000
 forward_from_network_pass=0000
 record_entire=yes
 record_response=yes
+google_api_key=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

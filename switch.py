@@ -5,56 +5,96 @@ import time
 import ConfigParser
 import call_forward_switcher_dcm
 
-if len(sys.argv) <= 1:
-    sys.exit("argv error")
-forward_to_phone_number = sys.argv[1]
+def main(forward_to_phone_number):
+    config = ConfigParser.ConfigParser()
+    config.read('switch.cfg')
 
-config = ConfigParser.ConfigParser()
-config.read('switch.cfg')
+    print("Call forward switching... (it takes a minute)")
+    call_result = call_forward_switcher_dcm.call_forward_switch(
+        twilio_sid=config.get("config", "twilio_sid"),
+        twilio_token=config.get("config", "twilio_token"),
+        twilio_phone_number=config.get("config", "twilio_phone_number"),
+        transfer_service_dcm_phone_number=config.get("config", "transfer_service_dcm_phone_number"),
+        forward_from_phone_number=config.get("config", "forward_from_phone_number"),
+        forward_from_network_pass=config.get("config", "forward_from_network_pass"),
+        forward_to_phone_number=forward_to_phone_number,
+        record_entire=config.getboolean("config", "record_entire"),
+        record_response=config.getboolean("config", "record_response"))
 
-print("Call forward switching... (it takes a minute)")
-call_result = call_forward_switcher_dcm.call_forward_switch(
-    twilio_sid=config.get("config", "twilio_sid"),
-    twilio_token=config.get("config", "twilio_token"),
-    twilio_phone_number=config.get("config", "twilio_phone_number"),
-    transfer_service_dcm_phone_number=config.get("config", "transfer_service_dcm_phone_number"),
-    forward_from_phone_number=config.get("config", "forward_from_phone_number"),
-    forward_from_network_pass=config.get("config", "forward_from_network_pass"),
-    forward_to_phone_number=forward_to_phone_number,
-    record_entire=config.getboolean("config", "record_entire"),
-    record_response=config.getboolean("config", "record_response"))
+    if call_result["error"]:
+        print(call_result["error"].message)
+        return 1
 
-if call_result["error"]:
-    print(call_result["error"].message)
-    exit(1)
+    call_sid = call_result["sid"]
+    finished = False
+    wait_max = 24
+    for i in xrange(wait_max):
+        status = call_forward_switcher_dcm.outbound_check_call_and_recordings_finished(
+            twilio_sid=config.get("config", "twilio_sid"),
+            twilio_token=config.get("config", "twilio_token"),
+            call_sid = call_sid)
+        if status["error"]:
+            print(status["error"].message)
+            exit(1)
+        print "({}/{}) Call status: {}, Recordings status: {}".format(i + 1, wait_max, status["call_status"], status["recording_status"])
+        if status["finished"]:
+            finished = True
+            break
+        time.sleep(5)
 
-call_sid = call_result["sid"]
-finished = False
-wait_max = 24
-for i in xrange(wait_max):
-    status = call_forward_switcher_dcm.outbound_check_call_and_recordings_finished(
+    if not finished:
+        print("timed out")
+        return 1
+
+    recordings_result = call_forward_switcher_dcm.outbound_retreive_recordings(
         twilio_sid=config.get("config", "twilio_sid"),
         twilio_token=config.get("config", "twilio_token"),
         call_sid = call_sid)
-    if status["error"]:
-        print(status["error"].message)
-        exit(1)
-    print "({}/{}) Call status: {}, Recordings status: {}".format(i + 1, wait_max, status["call_status"], status["recording_status"])
-    if status["finished"]:
-        finished = True
-        break
-    time.sleep(5)
+    if recordings_result["error"]:
+        print(recordings_result["error"].message)
+        return 1
 
-if not finished:
-    print("timed out")
-    exit(1)
+    print("Call finished. rec1:[{}] rec2:[{}]".format(recordings_result["recording_number_confirm_sid"], recordings_result["recording_switch_done_sid"]))
 
-recordings_result = call_forward_switcher_dcm.outbound_retreive_recordings(
-    twilio_sid=config.get("config", "twilio_sid"),
-    twilio_token=config.get("config", "twilio_token"),
-    call_sid = call_sid)
-if recordings_result["error"]:
-    print(recordings_result["error"].message)
-    exit(1)
+    number_confirm = call_forward_switcher_dcm.check_recording_number_confirm(
+        twilio_sid=config.get("config", "twilio_sid"),
+        recording_number_confirm_sid=recordings_result["recording_number_confirm_sid"],
+        google_api_key=config.get("config", "google_api_key"),
+        forward_to_phone_number=forward_to_phone_number)
 
-print("Call finished. rec1:[{}] rec2:[{}]".format(recordings_result["recording_number_confirm_sid"], recordings_result["recording_transfer_done_sid"]))
+    if number_confirm["error"]:
+        print(number_confirm["error"].message)
+        return 1
+
+    if not number_confirm["check"]:
+        print("Number confirm check Error")
+        return 1
+
+    print("Number confirm check OK")
+
+    switch_done = call_forward_switcher_dcm.check_recording_switch_done(
+        twilio_sid=config.get("config", "twilio_sid"),
+        recording_switch_done_sid=recordings_result["recording_switch_done_sid"],
+        google_api_key=config.get("config", "google_api_key"))
+
+    if switch_done["error"]:
+        print(switch_done["error"].message)
+        return 1
+
+    if not switch_done["check"]:
+        print("Switch done check Error")
+        return 1
+
+    print("Switch done check OK")
+
+    print("Call forward switch success. Current forward to:{}".format(str(forward_to_phone_number)))
+    return 0
+
+if __name__ == '__main__':
+    if len(sys.argv) <= 1:
+        sys.exit("argv error")
+
+    forward_to_phone_number = sys.argv[1]
+    res = main(forward_to_phone_number)
+    exit(res)
+
