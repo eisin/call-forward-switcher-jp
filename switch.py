@@ -78,10 +78,10 @@ def main():
         return 1
 
     if not number_confirm["check"]:
-        print("Number confirm check Error")
+        print(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
         return 1
 
-    print("Number confirm check OK")
+    print(u"Number confirm check OK [{}]".format(number_confirm["transcript"]))
 
     switch_done = call_forward_switcher_dcm.check_recording_switch_done(
         twilio_sid=config.get("config", "twilio_sid"),
@@ -93,10 +93,10 @@ def main():
         return 1
 
     if not switch_done["check"]:
-        print("Switch done check Error")
+        print(u"Switch done check Error [{}]".format(switch_done["transcript"]))
         return 1
 
-    print("Switch done check OK")
+    print(u"Switch done check OK [{}]".format(switch_done["transcript"]))
 
     print("Call forward switch success. Current forward to:{}".format(str(forward_to_phone_number)))
     return 0

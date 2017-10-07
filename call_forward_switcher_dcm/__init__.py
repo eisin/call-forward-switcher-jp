@@ -235,7 +235,11 @@ def check_recording_number_confirm(twilio_sid, recording_number_confirm_sid, goo
                         u"6",
                         u"7",
                         u"8",
-                        u"9"
+                        u"9",
+                        u"登録番号が",
+                        u"誤っています",
+                        u"転送先電話番号を",
+                        u"登録してください",
                     ]
                 }
             ]
@@ -254,12 +258,14 @@ def check_recording_number_confirm(twilio_sid, recording_number_confirm_sid, goo
         urlrecognize = urllib2.urlopen(request, timeout=30)
         result = urlrecognize.read()
     except urllib2.HTTPError as e:
-        return { "check": False, "recognize": None, "error": e }
+        return { "check": False, "recognize": None, "transcript": None, "result_text": None, "error": e }
 
+    js = json.loads(result, "utf-8")
+    transcript = js['results'][0]['alternatives'][0]['transcript']
     if result.find(str(forward_to_phone_number)) < 0:
-        return { "check": False, "recognize": result, "error": None }
+        return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
-    return { "check": True, "recognize": result, "error": None }
+    return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
 def check_recording_switch_done(twilio_sid, recording_switch_done_sid, google_api_key):
     if not twilio_sid:
@@ -282,11 +288,11 @@ def check_recording_switch_done(twilio_sid, recording_switch_done_sid, google_ap
             "speechContexts": [
                 {
                     "phrases": [
-                        "設定",
-                        "いたしました",
-                        "メイン",
-                        "メニュー",
-                        "です"
+                        u"設定",
+                        u"いたしました",
+                        u"メイン",
+                        u"メニュー",
+                        u"です",
                     ]
                 }
             ]
@@ -305,9 +311,13 @@ def check_recording_switch_done(twilio_sid, recording_switch_done_sid, google_ap
         urlrecognize = urllib2.urlopen(request, timeout=30)
         result = unicode(urlrecognize.read(), "utf-8")
     except urllib2.HTTPError as e:
-        return { "check": False, "recognize": None, "error": e }
+        return { "check": False, "recognize": None, "transcript": None, "result_text": None, "error": e }
 
-    if result.find(u"設定いたしました") < 0:
-        return { "check": False, "recognize": result, "error": None }
+    js = json.loads(result, "utf-8")
+    transcript = js['results'][0]['alternatives'][0]['transcript']
+    if result.find(u"設定いたしました") < 0 and \
+        result.find(u"設定致しました") < 0 and \
+        result.find(u"設定しました") < 0:
+        return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
-    return { "check": True, "recognize": result, "error": None }
+    return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
