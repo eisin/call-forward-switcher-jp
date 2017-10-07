@@ -2,12 +2,23 @@
 # -*- coding: utf-8 -*-
 import sys
 import time
+import argparse
 import ConfigParser
 import call_forward_switcher_dcm
 
-def main(forward_to_phone_number):
+def main():
+    parser = argparse.ArgumentParser("call-forward-switcher-dcm.py")
+    parser.add_argument("--forwardto", dest="forward_to_phone_number",
+        required=True,
+        help="Phone number to be forwarded to")
+    parser.add_argument("--config", dest="config_file_name",
+        default="switch.cfg",
+        help="Config file name")
+    args = parser.parse_args()
+
+    forward_to_phone_number = args.forward_to_phone_number
     config = ConfigParser.ConfigParser()
-    config.read('switch.cfg')
+    config.read(args.config_file_name)
 
     print("Call forward switching... (it takes a minute)")
     call_result = call_forward_switcher_dcm.call_forward_switch(
@@ -91,10 +102,5 @@ def main(forward_to_phone_number):
     return 0
 
 if __name__ == '__main__':
-    if len(sys.argv) <= 1:
-        sys.exit("argv error")
-
-    forward_to_phone_number = sys.argv[1]
-    res = main(forward_to_phone_number)
+    res = main()
     exit(res)
-
