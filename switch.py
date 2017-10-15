@@ -69,6 +69,7 @@ def main():
 
     number_confirm = call_forward_switcher_dcm.check_recording_number_confirm(
         twilio_sid=config.get("config", "twilio_sid"),
+        twilio_token=config.get("config", "twilio_token"),
         recording_number_confirm_sid=recordings_result["recording_number_confirm_sid"],
         google_api_key=config.get("config", "google_api_key"),
         forward_to_phone_number=forward_to_phone_number)
@@ -85,6 +86,7 @@ def main():
 
     switch_done = call_forward_switcher_dcm.check_recording_switch_done(
         twilio_sid=config.get("config", "twilio_sid"),
+        twilio_token=config.get("config", "twilio_token"),
         recording_switch_done_sid=recordings_result["recording_switch_done_sid"],
         google_api_key=config.get("config", "google_api_key"))
 

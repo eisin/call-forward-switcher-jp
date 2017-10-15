@@ -197,7 +197,7 @@ def outbound_retreive_recordings(twilio_sid, twilio_token, call_sid):
         "error": None,
     }
 
-def check_recording_number_confirm(twilio_sid, recording_number_confirm_sid, google_api_key, forward_to_phone_number):
+def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_confirm_sid, google_api_key, forward_to_phone_number):
     if not twilio_sid:
         raise ValueError("twilio_sid is missing")
     if not recording_number_confirm_sid:
@@ -209,7 +209,10 @@ def check_recording_number_confirm(twilio_sid, recording_number_confirm_sid, goo
     if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) != 11:
         raise ValueError("forward_to_phone_number is not valid form '09000000000'")
     try:
-        urlrec = urllib2.urlopen("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_number_confirm_sid), timeout=30)
+        passmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passmgr.add_password(None, "https://api.twilio.com/2010-04-01/", twilio_sid, twilio_token)
+        opener = urllib2.build_opener(urllib2.HTTPSHandler(), urllib2.HTTPBasicAuthHandler(passmgr))
+        urlrec = opener.open("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_number_confirm_sid), timeout=30)
     except urllib2.HTTPError as e:
         return { "check": False, "recognize": None, "error": e }
     wavedata = urlrec.read()
@@ -267,7 +270,7 @@ def check_recording_number_confirm(twilio_sid, recording_number_confirm_sid, goo
 
     return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
-def check_recording_switch_done(twilio_sid, recording_switch_done_sid, google_api_key):
+def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_sid, google_api_key):
     if not twilio_sid:
         raise ValueError("twilio_sid is missing")
     if not recording_switch_done_sid:
@@ -275,7 +278,10 @@ def check_recording_switch_done(twilio_sid, recording_switch_done_sid, google_ap
     if not google_api_key:
         raise ValueError("google_api_key is missing")
     try:
-        urlrec = urllib2.urlopen("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_switch_done_sid), timeout=30)
+        passmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passmgr.add_password(None, "https://api.twilio.com/2010-04-01/", twilio_sid, twilio_token)
+        opener = urllib2.build_opener(urllib2.HTTPSHandler(), urllib2.HTTPBasicAuthHandler(passmgr))
+        urlrec = opener.open("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_switch_done_sid), timeout=30)
     except urllib2.HTTPError as e:
         return { "check": False, "recognize": None, "error": e }
     wavedata = urlrec.read()
