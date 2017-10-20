@@ -265,11 +265,12 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
         return { "check": False, "recognize": None, "transcript": None, "result_text": None, "error": e }
 
     js = json.loads(result, "utf-8")
-    transcript = js['results'][0]['alternatives'][0]['transcript']
-    if result.find(str(forward_to_phone_number)) < 0:
-        return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
+    for speech_alternative in js['results'][0]['alternatives']:
+        transcript = speech_alternative["transcript"]
+        if transcript.find(str(forward_to_phone_number)) >= 0:
+            return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
-    return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
+    return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
 def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_sid, google_api_key):
     if not twilio_sid:
@@ -321,13 +322,14 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
         return { "check": False, "recognize": None, "transcript": None, "result_text": None, "error": e }
 
     js = json.loads(result, "utf-8")
-    transcript = js['results'][0]['alternatives'][0]['transcript']
-    if result.find(u"設定いたしました") < 0 and \
-        result.find(u"設定致しました") < 0 and \
-        result.find(u"設定しました") < 0:
-        return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
+    for speech_alternative in js['results'][0]['alternatives']:
+        transcript = speech_alternative["transcript"]
+        if transcript.find(u"設定いたしました") >= 0 or \
+            transcript.find(u"設定致しました") >= 0 or \
+            transcript.find(u"設定しました") >= 0:
+            return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
-    return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
+    return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
 def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
