@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='call_forward_switcher_dcm',
-    version='0.1',
+    version='0.2',
     description='Call forward switcher for dcm',
     author='eisin',
     author_email='eisin@noreply.github.com',
