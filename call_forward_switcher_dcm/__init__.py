@@ -5,6 +5,7 @@ import urllib
 import urllib2
 import base64
 import json
+import time
 
 def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
@@ -327,3 +328,169 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
         return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
     return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
+
+def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
+    forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
+    record_entire, record_response, google_api_key,
+    verbose_message_lambda=None, wait_limit_sec=120, wait_sleep=5):
+
+    if not twilio_sid:
+        raise ValueError("twilio_sid is missing")
+    if not twilio_token:
+        raise ValueError("twilio_token is missing")
+    if not twilio_phone_number:
+        raise ValueError("twilio_phone_number is missing")
+    if not transfer_service_dcm_phone_number:
+        raise ValueError("transfer_service_dcm_phone_number is missing")
+    if not forward_from_phone_number:
+        raise ValueError("forward_from_phone_number is missing")
+    if not forward_from_phone_number.isdigit() or len(forward_from_phone_number) != 11:
+        raise ValueError("forward_from_phone_number is not valid form '09000000000'")
+    if not forward_from_network_pass:
+        raise ValueError("forward_from_network_pass is missing")
+    if not forward_from_network_pass.isdigit() or len(forward_from_network_pass) != 4:
+        raise ValueError("forward_from_network_pass is not valid form '0000'")
+    if not forward_to_phone_number:
+        raise ValueError("forward_to_phone_number is missing")
+    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) != 11:
+        raise ValueError("forward_to_phone_number is not valid form '09000000000'")
+    if not google_api_key:
+        raise ValueError("google_api_key is missing")
+
+    call_sid = None
+    recording_number_confirm_sid = None
+    recording_switch_done_sid = None
+
+    call_result = call_forward_switch(
+        twilio_sid=twilio_sid,
+        twilio_token=twilio_token,
+        twilio_phone_number=twilio_phone_number,
+        transfer_service_dcm_phone_number=transfer_service_dcm_phone_number,
+        forward_from_phone_number=forward_from_phone_number,
+        forward_from_network_pass=forward_from_network_pass,
+        forward_to_phone_number=forward_to_phone_number,
+        record_entire=record_entire,
+        record_response=record_response)
+
+    call_sid = call_result["sid"]
+    if call_result["error"]:
+        return {
+            "error": call_result["error"],
+            "message": call_result["error"].message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    finished = False
+    current_wait_sec = 0
+    while current_wait_sec <= wait_limit_sec:
+        status = outbound_check_call_and_recordings_finished(
+            twilio_sid=twilio_sid,
+            twilio_token=twilio_token,
+            call_sid=call_sid)
+        if status["error"]:
+            return {
+                "error": status["error"],
+                "message": status["error"].message,
+                "call_sid": call_sid,
+                "recording_number_confirm_sid": recording_number_confirm_sid,
+                "recording_switch_done_sid": recording_switch_done_sid,
+            }
+        verbose_message_lambda(message=u"({}/{}) Call status: {}, Recordings status: {}".format(current_wait_sec, wait_limit_sec, status["call_status"], status["recording_status"]))
+        if status["finished"]:
+            finished = True
+            break
+        current_wait_sec += wait_sleep
+        time.sleep(wait_sleep)
+
+    if not finished:
+        error = Exception('Call timed out. call_sid:[{}]'.message(call_sid))
+        return {
+            "error": error,
+            "message": error.message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    recordings_result = outbound_retreive_recordings(
+        twilio_sid=twilio_sid,
+        twilio_token=twilio_token,
+        call_sid=call_sid)
+    if recordings_result["error"]:
+        return {
+            "error": recordings_result["error"],
+            "message": recordings_result["error"].message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    verbose_message_lambda(message=u"Call finished. rec1:[{}] rec2:[{}]".format(recordings_result["recording_number_confirm_sid"], recordings_result["recording_switch_done_sid"]))
+    recording_number_confirm_sid = recordings_result["recording_number_confirm_sid"]
+    recording_switch_done_sid = recordings_result["recording_switch_done_sid"]
+
+    number_confirm = check_recording_number_confirm(
+        twilio_sid=twilio_sid,
+        twilio_token=twilio_token,
+        recording_number_confirm_sid=recording_number_confirm_sid,
+        google_api_key=google_api_key,
+        forward_to_phone_number=forward_to_phone_number)
+
+    if number_confirm["error"]:
+        return {
+            "error": number_confirm["error"],
+            "message": number_confirm["error"].message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    if not number_confirm["check"]:
+        error = Exception(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
+        return {
+            "error": error,
+            "message": error.message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    verbose_message_lambda(message=u"Number confirm check OK [{}]".format(number_confirm["transcript"]))
+
+    switch_done = check_recording_switch_done(
+        twilio_sid=twilio_sid,
+        twilio_token=twilio_token,
+        recording_switch_done_sid=recording_switch_done_sid,
+        google_api_key=google_api_key)
+
+    if switch_done["error"]:
+        error = Exception(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
+        return {
+            "error": switch_done["error"],
+            "message": switch_done["error"].message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    if not switch_done["check"]:
+        error = Exception(u"Switch done check Error [{}]".format(switch_done["transcript"]))
+        return {
+            "error": error,
+            "message": error.message,
+            "call_sid": call_sid,
+            "recording_number_confirm_sid": recording_number_confirm_sid,
+            "recording_switch_done_sid": recording_switch_done_sid,
+        }
+
+    verbose_message_lambda(message=u"Switch done check OK [{}]".format(switch_done["transcript"]))
+
+    return {
+        "error": None,
+        "message": u"Call forward switch success. Current forward to:{}".format(str(forward_to_phone_number)),
+        "call_sid": call_sid,
+        "recording_number_confirm_sid": recording_number_confirm_sid,
+        "recording_switch_done_sid": recording_switch_done_sid,
+    }
