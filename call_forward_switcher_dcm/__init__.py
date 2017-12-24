@@ -6,6 +6,7 @@ import urllib2
 import base64
 import json
 import time
+import re
 
 def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
@@ -267,7 +268,8 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
     js = json.loads(result, "utf-8")
     for speech_alternative in js['results'][0]['alternatives']:
         transcript = speech_alternative["transcript"]
-        if transcript.find(str(forward_to_phone_number)) >= 0:
+        transcript_numberonly = u"".join(re.findall(r'[0-9]+', transcript))
+        if transcript_numberonly.find(str(forward_to_phone_number)) >= 0:
             return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
     return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
@@ -324,9 +326,10 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
     js = json.loads(result, "utf-8")
     for speech_alternative in js['results'][0]['alternatives']:
         transcript = speech_alternative["transcript"]
-        if transcript.find(u"設定いたしました") >= 0 or \
-            transcript.find(u"設定致しました") >= 0 or \
-            transcript.find(u"設定しました") >= 0:
+        if transcript.find(u"設定") >= 0 or \
+            transcript.find(u"いたしました") >= 0 or \
+            transcript.find(u"致しました") >= 0 or \
+            transcript.find(u"しました") >= 0:
             return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
     return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
