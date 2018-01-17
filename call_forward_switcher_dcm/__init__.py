@@ -30,8 +30,8 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
         raise ValueError("forward_from_network_pass is not valid form '0000'")
     if not forward_to_phone_number:
         raise ValueError("forward_to_phone_number is missing")
-    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) != 11:
-        raise ValueError("forward_to_phone_number is not valid form '09000000000'")
+    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) < 6 or 12 < len(forward_to_phone_number):
+        raise ValueError("forward_to_phone_number is not valid form")
 
     twilio_client = twilio.rest.Client(twilio_sid, twilio_token)
 
@@ -208,8 +208,8 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
         raise ValueError("google_api_key is missing")
     if not forward_to_phone_number:
         raise ValueError("forward_to_phone_number is missing")
-    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) != 11:
-        raise ValueError("forward_to_phone_number is not valid form '09000000000'")
+    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) < 6 or 12 < len(forward_to_phone_number):
+        raise ValueError("forward_to_phone_number is not valid form")
     try:
         passmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
         passmgr.add_password(None, "https://api.twilio.com/2010-04-01/", twilio_sid, twilio_token)
@@ -357,8 +357,8 @@ def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, tra
         raise ValueError("forward_from_network_pass is not valid form '0000'")
     if not forward_to_phone_number:
         raise ValueError("forward_to_phone_number is missing")
-    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) != 11:
-        raise ValueError("forward_to_phone_number is not valid form '09000000000'")
+    if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) < 6 or 12 < len(forward_to_phone_number):
+        raise ValueError("forward_to_phone_number is not valid form")
     if not google_api_key:
         raise ValueError("google_api_key is missing")
 
