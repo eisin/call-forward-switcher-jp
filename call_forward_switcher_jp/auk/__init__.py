@@ -38,6 +38,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
     if record_response:
         twiml_hangup = """
             <Response>
+                <Say>f</Say>
                 <Hangup/>
             </Response>
         """
@@ -48,7 +49,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Say>e</Say>
                 <Play digits="#"/>
                 <Say>e</Say>
-                <Record playBeep="false" timeout="5" maxLength="5" action="{}"/>
+                <Record playBeep="false" timeout="0" maxLength="5" action="{}"/>
             </Response>
         """.format(url_hangup)
         url_confirm="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml_confirm)
@@ -67,7 +68,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Say>d</Say>
                 <Play digits="{}"/>
                 <Say>d</Say>
-                <Record playBeep="false" timeout="29" maxLength="29" trim="trim-silence" action="{}"/>
+                <Record playBeep="false" timeout="0" maxLength="28" trim="trim-silence" action="{}"/>
             </Response>
         """.format(forward_from_phone_number, forward_from_network_pass, forward_to_phone_number, url_confirm)
     else:
@@ -85,11 +86,12 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Say>d</Say>
                 <Play digits="{}"/>
                 <Say>d</Say>
-                <Pause length="16"/>
+                <Pause length="28"/>
                 <Say>e</Say>
                 <Play digits="#"/>
                 <Say>e</Say>
                 <Pause length="5"/>
+                <Say>f</Say>
                 <Hangup/>
             </Response>
         """.format(forward_from_phone_number, forward_from_network_pass, forward_to_phone_number)
@@ -322,7 +324,7 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
 def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_auk_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
     record_entire, record_response, google_api_key,
-    verbose_message_lambda=None, wait_limit_sec=120, wait_sleep=5):
+    verbose_message_lambda=None, wait_limit_sec=180, wait_sleep=5):
 
     if not twilio_sid:
         raise ValueError("twilio_sid is missing")
@@ -395,7 +397,7 @@ def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, tra
         time.sleep(wait_sleep)
 
     if not finished:
-        error = Exception('Call timed out. call_sid:[{}]'.message(call_sid))
+        error = Exception('Call timed out. call_sid:[{}]'.format(call_sid))
         return {
             "error": error,
             "message": str(error),
@@ -421,61 +423,62 @@ def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, tra
     recording_number_confirm_sid = recordings_result["recording_number_confirm_sid"]
     recording_switch_done_sid = recordings_result["recording_switch_done_sid"]
 
-    number_confirm = check_recording_number_confirm(
-        twilio_sid=twilio_sid,
-        twilio_token=twilio_token,
-        recording_number_confirm_sid=recording_number_confirm_sid,
-        google_api_key=google_api_key,
-        forward_to_phone_number=forward_to_phone_number)
+    if record_response:
+        number_confirm = check_recording_number_confirm(
+            twilio_sid=twilio_sid,
+            twilio_token=twilio_token,
+            recording_number_confirm_sid=recording_number_confirm_sid,
+            google_api_key=google_api_key,
+            forward_to_phone_number=forward_to_phone_number)
 
-    if number_confirm["error"]:
-        return {
-            "error": number_confirm["error"],
-            "message": str(number_confirm["error"]),
-            "call_sid": call_sid,
-            "recording_number_confirm_sid": recording_number_confirm_sid,
-            "recording_switch_done_sid": recording_switch_done_sid,
-        }
+        if number_confirm["error"]:
+            return {
+                "error": number_confirm["error"],
+                "message": str(number_confirm["error"]),
+                "call_sid": call_sid,
+                "recording_number_confirm_sid": recording_number_confirm_sid,
+                "recording_switch_done_sid": recording_switch_done_sid,
+            }
 
-    if not number_confirm["check"]:
-        error = Exception(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
-        return {
-            "error": error,
-            "message": str(error),
-            "call_sid": call_sid,
-            "recording_number_confirm_sid": recording_number_confirm_sid,
-            "recording_switch_done_sid": recording_switch_done_sid,
-        }
+        if not number_confirm["check"]:
+            error = Exception(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
+            return {
+                "error": error,
+                "message": str(error),
+                "call_sid": call_sid,
+                "recording_number_confirm_sid": recording_number_confirm_sid,
+                "recording_switch_done_sid": recording_switch_done_sid,
+            }
 
-    verbose_message_lambda(message=u"Number confirm check OK [{}]".format(number_confirm["transcript"]))
+        verbose_message_lambda(message=u"Number confirm check OK [{}]".format(number_confirm["transcript"]))
 
-    switch_done = check_recording_switch_done(
-        twilio_sid=twilio_sid,
-        twilio_token=twilio_token,
-        recording_switch_done_sid=recording_switch_done_sid,
-        google_api_key=google_api_key)
+        switch_done = check_recording_switch_done(
+            twilio_sid=twilio_sid,
+            twilio_token=twilio_token,
+            recording_switch_done_sid=recording_switch_done_sid,
+            google_api_key=google_api_key)
 
-    if switch_done["error"]:
-        error = Exception(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
-        return {
-            "error": switch_done["error"],
-            "message": str(switch_done["error"]),
-            "call_sid": call_sid,
-            "recording_number_confirm_sid": recording_number_confirm_sid,
-            "recording_switch_done_sid": recording_switch_done_sid,
-        }
+        if switch_done["error"]:
+            error = Exception(u"Number confirm check Error [{}]".format(number_confirm["transcript"]))
+            return {
+                "error": switch_done["error"],
+                "message": str(switch_done["error"]),
+                "call_sid": call_sid,
+                "recording_number_confirm_sid": recording_number_confirm_sid,
+                "recording_switch_done_sid": recording_switch_done_sid,
+            }
 
-    if not switch_done["check"]:
-        error = Exception(u"Switch done check Error [{}]".format(switch_done["transcript"]))
-        return {
-            "error": error,
-            "message": str(error),
-            "call_sid": call_sid,
-            "recording_number_confirm_sid": recording_number_confirm_sid,
-            "recording_switch_done_sid": recording_switch_done_sid,
-        }
+        if not switch_done["check"]:
+            error = Exception(u"Switch done check Error [{}]".format(switch_done["transcript"]))
+            return {
+                "error": error,
+                "message": str(error),
+                "call_sid": call_sid,
+                "recording_number_confirm_sid": recording_number_confirm_sid,
+                "recording_switch_done_sid": recording_switch_done_sid,
+            }
 
-    verbose_message_lambda(message=u"Switch done check OK [{}]".format(switch_done["transcript"]))
+        verbose_message_lambda(message=u"Switch done check OK [{}]".format(switch_done["transcript"]))
 
     return {
         "error": None,

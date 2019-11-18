@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import configparser
+import call_forward_switcher_jp
 
 def main():
     parser = argparse.ArgumentParser("switch.py")
@@ -32,6 +33,7 @@ def main():
     
     config_section_name = "config"
     call_param = {
+        'career': mobile_career,
         'twilio_sid': config.get(config_section_name, "twilio_sid"),
         'twilio_token': config.get(config_section_name, "twilio_token"),
         'twilio_phone_number': config.get(config_section_name, "twilio_phone_number"),
@@ -45,13 +47,10 @@ def main():
     }
 
     if mobile_career == "dcm":
-        call_param['transfer_service_dcm_phone_number'] = config.get(config_section_name, "transfer_service_dcm_phone_number")
-        import call_forward_switcher_jp.dcm
-        call_result = call_forward_switcher_jp.dcm.call_forward_switch_batch(**call_param)
+        call_param['transfer_service_career_phone_number'] = config.get(config_section_name, "transfer_service_dcm_phone_number")
     elif mobile_career == "auk":
-        call_param['transfer_service_auk_phone_number'] = config.get(config_section_name, "transfer_service_auk_phone_number")
-        import call_forward_switcher_jp.auk
-        call_result = call_forward_switcher_jp.auk.call_forward_switch_batch(**call_param)
+        call_param['transfer_service_career_phone_number'] = config.get(config_section_name, "transfer_service_auk_phone_number")
+    call_result = call_forward_switcher_jp.call_forward_switch_batch(**call_param)
     
     if call_result["error"]:
         print(call_result["message"])
