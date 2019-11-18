@@ -1,11 +1,11 @@
-#!/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-import ConfigParser
-import call_forward_switcher_dcm
+import configparser
+import call_forward_switcher_jp.dcm
 
 def main():
-    parser = argparse.ArgumentParser("call-forward-switcher-dcm.py")
+    parser = argparse.ArgumentParser("switch.py")
     parser.add_argument("--forwardto", dest="forward_to_phone_number",
         required=True,
         help="Phone number to be forwarded to")
@@ -15,14 +15,14 @@ def main():
     args = parser.parse_args()
 
     forward_to_phone_number = args.forward_to_phone_number
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(args.config_file_name)
 
     print("Call forward switching... (it takes a minute)")
 
     def verbose_message(message):
         print(message)
-    call_result = call_forward_switcher_dcm.call_forward_switch_batch(
+    call_result = call_forward_switcher_jp.dcm.call_forward_switch_batch(
         twilio_sid=config.get("config", "twilio_sid"),
         twilio_token=config.get("config", "twilio_token"),
         twilio_phone_number=config.get("config", "twilio_phone_number"),
