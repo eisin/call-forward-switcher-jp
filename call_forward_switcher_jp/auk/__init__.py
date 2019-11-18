@@ -8,7 +8,7 @@ import json
 import time
 import re
 
-def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
+def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_auk_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
     record_entire, record_response):
 
@@ -18,8 +18,8 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
         raise ValueError("twilio_token is missing")
     if not twilio_phone_number:
         raise ValueError("twilio_phone_number is missing")
-    if not transfer_service_dcm_phone_number:
-        raise ValueError("transfer_service_dcm_phone_number is missing")
+    if not transfer_service_auk_phone_number:
+        raise ValueError("transfer_service_auk_phone_number is missing")
     if not forward_from_phone_number:
         raise ValueError("forward_from_phone_number is missing")
     if not forward_from_phone_number.isdigit() or len(forward_from_phone_number) != 11:
@@ -55,41 +55,33 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
 
         twiml = """
             <Response>
-                <Pause length="6"/>
+                <Pause length="9"/>
                 <Say>a</Say>
                 <Play digits="{}"/>
                 <Say>a</Say>
-                <Pause length="3"/>
+                <Pause length="19"/>
                 <Say>b</Say>
                 <Play digits="{}"/>
                 <Say>b</Say>
-                <Pause length="4"/>
-                <Say>c</Say>
-                <Play digits="3"/>
-                <Say>c</Say>
-                <Pause length="5"/>
+                <Pause length="8"/>
                 <Say>d</Say>
                 <Play digits="{}"/>
                 <Say>d</Say>
-                <Record playBeep="false" timeout="19" maxLength="19" trim="trim-silence" action="{}"/>
+                <Record playBeep="false" timeout="29" maxLength="29" trim="trim-silence" action="{}"/>
             </Response>
         """.format(forward_from_phone_number, forward_from_network_pass, forward_to_phone_number, url_confirm)
     else:
         twiml = """
             <Response>
-                <Pause length="6"/>
+                <Pause length="9"/>
                 <Say>a</Say>
                 <Play digits="{}"/>
                 <Say>a</Say>
-                <Pause length="3"/>
+                <Pause length="19"/>
                 <Say>b</Say>
                 <Play digits="{}"/>
                 <Say>b</Say>
-                <Pause length="4"/>
-                <Say>c</Say>
-                <Play digits="3"/>
-                <Say>c</Say>
-                <Pause length="5"/>
+                <Pause length="8"/>
                 <Say>d</Say>
                 <Play digits="{}"/>
                 <Say>d</Say>
@@ -108,7 +100,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
 
     try:
         call = twilio_client.calls.create(
-            to=transfer_service_dcm_phone_number,
+            to=transfer_service_auk_phone_number,
             from_=twilio_phone_number,
             url="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml),
             record=call_record_opt,
@@ -188,9 +180,9 @@ def outbound_retreive_recordings(twilio_sid, twilio_token, call_sid):
     recording_switch_done_sid = None
     for recording in recordings:
         duration = int(recording.duration)
-        if 10 - 1 <= duration and duration <= 19 + 1:
+        if 20 - 1 <= duration and duration <= 30 + 1:
             recording_number_confirm_sid = recording.sid
-        if 5 - 1 <= duration and duration <= 5 + 1:
+        if 2 - 1 <= duration and duration <= 2 + 1:
             recording_switch_done_sid = recording.sid
     return {
         "recording_number_confirm_sid": recording_number_confirm_sid,
@@ -229,8 +221,8 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
                     "phrases": [
                         u"転送",
                         u"先",
-                        u"電話番号に",
-                        u"を登録します",
+                        u"の",
+                        u"電話番号は",
                         u"0",
                         u"1",
                         u"2",
@@ -241,10 +233,6 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
                         u"7",
                         u"8",
                         u"9",
-                        u"登録番号が",
-                        u"誤っています",
-                        u"転送先電話番号を",
-                        u"登録してください",
                     ]
                 }
             ]
@@ -297,11 +285,10 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
             "speechContexts": [
                 {
                     "phrases": [
-                        u"設定",
-                        u"いたしました",
-                        u"メイン",
-                        u"メニュー",
-                        u"です",
+                        u"すべて",
+                        u"全て",
+                        u"転送",
+                        u"いたします",
                     ]
                 }
             ]
@@ -324,15 +311,15 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
     js = json.loads(result.decode('utf-8'))
     for speech_alternative in js['results'][0]['alternatives']:
         transcript = speech_alternative["transcript"]
-        if transcript.find(u"設定") >= 0 or \
-            transcript.find(u"いたしました") >= 0 or \
-            transcript.find(u"致しました") >= 0 or \
-            transcript.find(u"しました") >= 0:
+        if transcript.find(u"転送") >= 0 or \
+            transcript.find(u"いたします") >= 0 or \
+            transcript.find(u"致します") >= 0 or \
+            transcript.find(u"します") >= 0:
             return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
     return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
-def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
+def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_auk_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
     record_entire, record_response, google_api_key,
     verbose_message_lambda=None, wait_limit_sec=120, wait_sleep=5):
@@ -343,8 +330,8 @@ def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, tra
         raise ValueError("twilio_token is missing")
     if not twilio_phone_number:
         raise ValueError("twilio_phone_number is missing")
-    if not transfer_service_dcm_phone_number:
-        raise ValueError("transfer_service_dcm_phone_number is missing")
+    if not transfer_service_auk_phone_number:
+        raise ValueError("transfer_service_auk_phone_number is missing")
     if not forward_from_phone_number:
         raise ValueError("forward_from_phone_number is missing")
     if not forward_from_phone_number.isdigit() or len(forward_from_phone_number) != 11:
@@ -368,7 +355,7 @@ def call_forward_switch_batch(twilio_sid, twilio_token, twilio_phone_number, tra
         twilio_sid=twilio_sid,
         twilio_token=twilio_token,
         twilio_phone_number=twilio_phone_number,
-        transfer_service_dcm_phone_number=transfer_service_dcm_phone_number,
+        transfer_service_auk_phone_number=transfer_service_auk_phone_number,
         forward_from_phone_number=forward_from_phone_number,
         forward_from_network_pass=forward_from_network_pass,
         forward_to_phone_number=forward_to_phone_number,

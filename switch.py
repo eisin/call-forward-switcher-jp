@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 import argparse
 import configparser
-import call_forward_switcher_jp.dcm
 
 def main():
     parser = argparse.ArgumentParser("switch.py")
+    parser.add_argument("--career", dest="mobile_career",
+        required=True,
+        help="Mobile career [dcm] or [auk]")
     parser.add_argument("--forwardto", dest="forward_to_phone_number",
         required=True,
         help="Phone number to be forwarded to")
@@ -15,26 +17,42 @@ def main():
     args = parser.parse_args()
 
     forward_to_phone_number = args.forward_to_phone_number
+    mobile_career = args.mobile_career
     config = configparser.ConfigParser()
     config.read(args.config_file_name)
+
+    if mobile_career != "dcm" and mobile_career != "auk":
+        print("--career parameters must be [dcm] or [auk]")
+        exit(1)
 
     print("Call forward switching... (it takes a minute)")
 
     def verbose_message(message):
         print(message)
-    call_result = call_forward_switcher_jp.dcm.call_forward_switch_batch(
-        twilio_sid=config.get("config", "twilio_sid"),
-        twilio_token=config.get("config", "twilio_token"),
-        twilio_phone_number=config.get("config", "twilio_phone_number"),
-        transfer_service_dcm_phone_number=config.get("config", "transfer_service_dcm_phone_number"),
-        forward_from_phone_number=config.get("config", "forward_from_phone_number"),
-        forward_from_network_pass=config.get("config", "forward_from_network_pass"),
-        forward_to_phone_number=forward_to_phone_number,
-        record_entire=config.getboolean("config", "record_entire"),
-        record_response=config.getboolean("config", "record_response"),
-        google_api_key=config.get("config", "google_api_key"),
-        verbose_message_lambda=verbose_message)
+    
+    config_section_name = "config"
+    call_param = {
+        'twilio_sid': config.get(config_section_name, "twilio_sid"),
+        'twilio_token': config.get(config_section_name, "twilio_token"),
+        'twilio_phone_number': config.get(config_section_name, "twilio_phone_number"),
+        'forward_from_phone_number': config.get(config_section_name, "forward_from_phone_number"),
+        'forward_from_network_pass': config.get(config_section_name, "forward_from_network_pass"),
+        'forward_to_phone_number': forward_to_phone_number,
+        'record_entire': config.getboolean(config_section_name, "record_entire"),
+        'record_response': config.getboolean(config_section_name, "record_response"),
+        'google_api_key': config.get(config_section_name, "google_api_key"),
+        'verbose_message_lambda': verbose_message,
+    }
 
+    if mobile_career == "dcm":
+        call_param['transfer_service_dcm_phone_number'] = config.get(config_section_name, "transfer_service_dcm_phone_number")
+        import call_forward_switcher_jp.dcm
+        call_result = call_forward_switcher_jp.dcm.call_forward_switch_batch(**call_param)
+    elif mobile_career == "auk":
+        call_param['transfer_service_auk_phone_number'] = config.get(config_section_name, "transfer_service_auk_phone_number")
+        import call_forward_switcher_jp.auk
+        call_result = call_forward_switcher_jp.auk.call_forward_switch_batch(**call_param)
+    
     if call_result["error"]:
         print(call_result["message"])
         return 1

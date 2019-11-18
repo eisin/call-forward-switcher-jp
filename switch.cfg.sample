@@ -3,6 +3,7 @@ twilio_sid=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 twilio_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 twilio_phone_number=+815000000000
 transfer_service_dcm_phone_number=+81903101429
+transfer_service_aukphone_number=+819044441428
 forward_from_phone_number=09000000000
 forward_from_network_pass=0000
 record_entire=yes
