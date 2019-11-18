@@ -1,2 +1,4 @@
 twilio
 setuptools
+boto3
+pytz
