@@ -2,7 +2,7 @@
 import twilio.rest
 from twilio.base.exceptions import TwilioRestException
 import urllib
-import urllib2
+import urllib.request
 import base64
 import json
 import time
@@ -41,7 +41,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Hangup/>
             </Response>
         """
-        url_hangup="http://twimlets.com/echo?Twiml=" + urllib.quote(twiml_hangup)
+        url_hangup="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml_hangup)
 
         twiml_confirm = """
             <Response>
@@ -51,7 +51,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Record playBeep="false" timeout="5" maxLength="5" action="{}"/>
             </Response>
         """.format(url_hangup)
-        url_confirm="http://twimlets.com/echo?Twiml=" + urllib.quote(twiml_confirm)
+        url_confirm="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml_confirm)
 
         twiml = """
             <Response>
@@ -71,7 +71,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Say>d</Say>
                 <Play digits="{}"/>
                 <Say>d</Say>
-                <Record playBeep="false" timeout="16" maxLength="16" trim="trim-silence" action="{}"/>
+                <Record playBeep="false" timeout="19" maxLength="19" trim="trim-silence" action="{}"/>
             </Response>
         """.format(forward_from_phone_number, forward_from_network_pass, forward_to_phone_number, url_confirm)
     else:
@@ -110,7 +110,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
         call = twilio_client.calls.create(
             to=transfer_service_dcm_phone_number,
             from_=twilio_phone_number,
-            url="http://twimlets.com/echo?Twiml=" + urllib.quote(twiml),
+            url="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml),
             record=call_record_opt,
         )
     except TwilioRestException as e:
@@ -188,7 +188,7 @@ def outbound_retreive_recordings(twilio_sid, twilio_token, call_sid):
     recording_switch_done_sid = None
     for recording in recordings:
         duration = int(recording.duration)
-        if 10 - 1 <= duration and duration <= 16 + 1:
+        if 10 - 1 <= duration and duration <= 19 + 1:
             recording_number_confirm_sid = recording.sid
         if 5 - 1 <= duration and duration <= 5 + 1:
             recording_switch_done_sid = recording.sid
@@ -211,14 +211,14 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
     if not forward_to_phone_number.isdigit() or len(forward_to_phone_number) < 6 or 12 < len(forward_to_phone_number):
         raise ValueError("forward_to_phone_number is not valid form")
     try:
-        passmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passmgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         passmgr.add_password(None, "https://api.twilio.com/2010-04-01/", twilio_sid, twilio_token)
-        opener = urllib2.build_opener(urllib2.HTTPSHandler(), urllib2.HTTPBasicAuthHandler(passmgr))
+        opener = urllib.request.build_opener(urllib.request.HTTPSHandler(), urllib.request.HTTPBasicAuthHandler(passmgr))
         urlrec = opener.open("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_number_confirm_sid), timeout=30)
-    except urllib2.HTTPError as e:
+    except urllib.error.HTTPError as e:
         return { "check": False, "recognize": None, "error": e }
     wavedata = urlrec.read()
-    wavedata_base64url = base64.b64encode(wavedata).replace("+", "-").replace("/", "_")
+    wavedata_base64url = base64.urlsafe_b64encode(wavedata).decode('utf-8')
     query = json.dumps({
         "config": {
             "encoding": u"LINEAR16",
@@ -254,18 +254,17 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
         }
     })
 
-    request = urllib2.Request("https://speech.googleapis.com/v1/speech:recognize?key={}".format(google_api_key))
+    request = urllib.request.Request(url="https://speech.googleapis.com/v1/speech:recognize?key={}".format(google_api_key), data=query.encode('utf-8'))
     request.add_header("Content-Type", "application/json")
     request.add_header("Content-Length", len(query))
-    request.add_data(query)
 
     try:
-        urlrecognize = urllib2.urlopen(request, timeout=30)
+        urlrecognize = urllib.request.urlopen(request, timeout=30)
         result = urlrecognize.read()
-    except urllib2.HTTPError as e:
+    except urllib.error.HTTPError as e:
         return { "check": False, "recognize": None, "transcript": None, "result_text": None, "error": e }
 
-    js = json.loads(result, "utf-8")
+    js = json.loads(result.decode('utf-8'))
     for speech_alternative in js['results'][0]['alternatives']:
         transcript = speech_alternative["transcript"]
         transcript_numberonly = u"".join(re.findall(r'[0-9]+', transcript))
@@ -282,14 +281,14 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
     if not google_api_key:
         raise ValueError("google_api_key is missing")
     try:
-        passmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passmgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         passmgr.add_password(None, "https://api.twilio.com/2010-04-01/", twilio_sid, twilio_token)
-        opener = urllib2.build_opener(urllib2.HTTPSHandler(), urllib2.HTTPBasicAuthHandler(passmgr))
+        opener = urllib.request.build_opener(urllib.request.HTTPSHandler(), urllib.request.HTTPBasicAuthHandler(passmgr))
         urlrec = opener.open("https://api.twilio.com/2010-04-01/Accounts/{}/Recordings/{}.wav".format(twilio_sid, recording_switch_done_sid), timeout=30)
-    except urllib2.HTTPError as e:
+    except urllib.error.HTTPError as e:
         return { "check": False, "recognize": None, "error": e }
     wavedata = urlrec.read()
-    wavedata_base64url = base64.b64encode(wavedata).replace("+", "-").replace("/", "_")
+    wavedata_base64url = base64.urlsafe_b64encode(wavedata)
     query = json.dumps({
         "config": {
             "encoding": u"LINEAR16",
@@ -308,22 +307,21 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
             ]
         },
         "audio": {
-            "content": wavedata_base64url,
+            "content": wavedata_base64url.decode('utf-8'),
         }
     })
 
-    request = urllib2.Request("https://speech.googleapis.com/v1/speech:recognize?key={}".format(google_api_key))
+    request = urllib.request.Request(url="https://speech.googleapis.com/v1/speech:recognize?key={}".format(google_api_key), data=query.encode('utf-8'))
     request.add_header("Content-Type", "application/json")
     request.add_header("Content-Length", len(query))
-    request.add_data(query)
 
     try:
-        urlrecognize = urllib2.urlopen(request, timeout=30)
-        result = unicode(urlrecognize.read(), "utf-8")
-    except urllib2.HTTPError as e:
+        urlrecognize = urllib.request.urlopen(request, timeout=30)
+        result = urlrecognize.read()
+    except urllib.error.HTTPError as e:
         return { "check": False, "recognize": None, "transcript": None, "result_text": None, "error": e }
 
-    js = json.loads(result, "utf-8")
+    js = json.loads(result.decode('utf-8'))
     for speech_alternative in js['results'][0]['alternatives']:
         transcript = speech_alternative["transcript"]
         if transcript.find(u"設定") >= 0 or \
