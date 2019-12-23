@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='call_forward_switcher_jp',
-    version='0.6',
+    version='0.7',
     description='Call forward switcher for JP career',
     author='eisin',
     author_email='eisin@noreply.github.com',
@@ -16,5 +16,5 @@ setup(
         'pytz',
     ],
     license='Apache License Version 2.0',
-    packages=['call_forward_switcher_jp.dcm', 'call_forward_switcher_jp.auk'],
+    packages=['call_forward_switcher_jp', 'call_forward_switcher_jp.dcm', 'call_forward_switcher_jp.auk'],
 )
