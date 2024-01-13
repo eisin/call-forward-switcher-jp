@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='call_forward_switcher_jp',
-    version='0.7',
+    version='0.8',
     description='Call forward switcher for JP career',
     author='eisin',
     author_email='eisin@noreply.github.com',

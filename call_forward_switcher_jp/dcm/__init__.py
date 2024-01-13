@@ -270,7 +270,10 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
     for speech_alternative in js['results'][0]['alternatives']:
         transcript = speech_alternative["transcript"]
         transcript_numberonly = u"".join(re.findall(r'[0-9]+', transcript))
-        if transcript_numberonly.find(str(forward_to_phone_number)) >= 0:
+        # 電話番号チェックは必ずしも必須としない。
+        # Google Speech-To-Textの精度が2024年1月より落ちており、番号の認識が不正確となったため。
+        if transcript_numberonly.find(str(forward_to_phone_number)) >= 0 or \
+           transcript.find(u"登録します") >= 0:
             return { "check": True, "recognize": result, "transcript": transcript, "result_text": result, "error": None }
 
     return { "check": False, "recognize": result, "transcript": transcript, "result_text": result, "error": None }

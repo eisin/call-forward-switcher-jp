@@ -12,4 +12,4 @@ boto3 = "*"
 pytz = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.11"
