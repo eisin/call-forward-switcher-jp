@@ -226,6 +226,7 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
             "encoding": u"LINEAR16",
             "languageCode": u"ja-JP",
             "maxAlternatives": 20,
+            "model": u"telephony",
             "speechContexts": [
                 {
                     "phrases": [
@@ -233,16 +234,7 @@ def check_recording_number_confirm(twilio_sid, twilio_token, recording_number_co
                         u"先",
                         u"電話番号に",
                         u"を登録します",
-                        u"0",
-                        u"1",
-                        u"2",
-                        u"3",
-                        u"4",
-                        u"5",
-                        u"6",
-                        u"7",
-                        u"8",
-                        u"9",
+                        u"$FULLPHONENUM",
                         u"登録番号が",
                         u"誤っています",
                         u"転送先電話番号を",
@@ -299,6 +291,7 @@ def check_recording_switch_done(twilio_sid, twilio_token, recording_switch_done_
             "encoding": u"LINEAR16",
             "languageCode": u"ja-JP",
             "maxAlternatives": 20,
+            "model": u"telephony",
             "speechContexts": [
                 {
                     "phrases": [
