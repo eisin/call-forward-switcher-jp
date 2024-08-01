@@ -8,6 +8,13 @@ import json
 import time
 import re
 
+
+def _xml_shorten(original_xml_text):
+    text = original_xml_text
+    text = re.sub(r"^\s+", "", text, 0, re.MULTILINE)
+    text = re.sub(r"\n", "", text)
+    return text
+
 def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_service_dcm_phone_number,
     forward_from_phone_number, forward_from_network_pass, forward_to_phone_number,
     record_entire, record_response):
@@ -41,7 +48,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Hangup/>
             </Response>
         """
-        url_hangup="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml_hangup)
+        url_hangup="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(_xml_shorten(twiml_hangup))
 
         twiml_confirm = """
             <Response>
@@ -52,7 +59,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Say>f</Say>
             </Response>
         """.format(url_hangup)
-        url_confirm="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(twiml_confirm)
+        url_confirm="http://twimlets.com/echo?Twiml=" + urllib.parse.quote(_xml_shorten(twiml_confirm))
 
         twiml = """
             <Response>
@@ -75,6 +82,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Record playBeep="false" timeout="0" maxLength="19" trim="trim-silence" action="{}"/>
             </Response>
         """.format(forward_from_phone_number, forward_from_network_pass, forward_to_phone_number, url_confirm)
+        twiml = _xml_shorten(twiml)
     else:
         twiml = """
             <Response>
@@ -103,6 +111,7 @@ def call_forward_switch(twilio_sid, twilio_token, twilio_phone_number, transfer_
                 <Hangup/>
             </Response>
         """.format(forward_from_phone_number, forward_from_network_pass, forward_to_phone_number)
+        twiml = _xml_shorten(twiml)
 
     call_record_opt = "false"
     if record_entire:
