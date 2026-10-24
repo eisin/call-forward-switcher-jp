@@ -30,6 +30,12 @@ def main():
 
     def verbose_message(message):
         print(message)
+
+    def mask_phone_number(phone_number):
+        phone_str = str(phone_number)
+        if len(phone_str) <= 4:
+            return "****"
+        return "*" * (len(phone_str) - 4) + phone_str[-4:]
     
     config_section_name = "config"
     call_param = {
@@ -56,7 +62,7 @@ def main():
         print(call_result["message"])
         return 1
 
-    print("Call forward switch success. Current forward to:{}".format(str(forward_to_phone_number)))
+    print("Call forward switch success. Current forward to:{}".format(mask_phone_number(forward_to_phone_number)))
     return 0
 
 if __name__ == '__main__':
