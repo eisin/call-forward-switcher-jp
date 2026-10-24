@@ -31,12 +31,6 @@ def main():
     def verbose_message(message):
         print(message)
 
-    def mask_phone_number(phone_number):
-        phone_str = str(phone_number)
-        if len(phone_str) <= 4:
-            return "****"
-        return "*" * (len(phone_str) - 4) + phone_str[-4:]
-    
     config_section_name = "config"
     call_param = {
         'career': mobile_career,
