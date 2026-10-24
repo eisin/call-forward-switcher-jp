@@ -30,7 +30,7 @@ def main():
 
     def verbose_message(message):
         print(message)
-    
+
     config_section_name = "config"
     call_param = {
         'career': mobile_career,
@@ -56,7 +56,7 @@ def main():
         print(call_result["message"])
         return 1
 
-    print("Call forward switch success. Current forward to:{}".format(str(forward_to_phone_number)))
+    print("Call forward switch success.")
     return 0
 
 if __name__ == '__main__':
